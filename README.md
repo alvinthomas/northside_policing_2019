@@ -12,7 +12,7 @@ It is made available under a CC-BY-SA 4.0 International license.
 
 # Introduction
 
-This repository was created as a student project for [HBEH 720](http://racialequity.web.unc.edu/) (Leading for Health Equity) at the [University of North Carolina at Chapel Hill](https://www.unc.edu/)] [Gillings School of Global Public Health](https://sph.unc.edu/).
+This repository was created as a student project for [HBEH 720](http://racialequity.web.unc.edu/) (Leading for Health Equity) at the [Gillings School of Global Public Health](https://sph.unc.edu/), part of the [University of North Carolina at Chapel Hill](https://www.unc.edu/)].
 
 Group Members: Allie Lowe, Alvin Thomas, Amanda Ribas Rietti Souto, Cindy Harper Covington, Townshend Peters
 
