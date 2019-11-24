@@ -5,8 +5,8 @@ account: alvinthomas
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 1517634
-bundleId: 2612902
+bundleId: 2613973
 url: https://alvinthomas.shinyapps.io/northside_policing_2019/
-when: 1574571418.41873
+when: 1574628217.81803
 asMultiple: FALSE
 asStatic: FALSE

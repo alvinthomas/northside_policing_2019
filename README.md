@@ -22,3 +22,7 @@ This repository is maintained by [Alvin G. Thomas](https://alvingthomas.com). Pl
 Data were derived from the publicly accessible [Chapel Hill Open Data platform](https://www.chapelhillopendata.org/page/home1/).
 
 Data were restricted to the Northside neighborhood by a Chapel Hill Police analyst.
+
+# Shiny App
+
+The Shiny App is hosted at [here](https://alvinthomas.shinyapps.io/northside_policing_2019/).

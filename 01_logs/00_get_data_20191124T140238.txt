@@ -1,0 +1,1435 @@
+------------------------------------------------------------------------------------------------------------------------------------------
+      name:  log_00_get_data
+       log:  C:\Users\alvin\OneDrive\Documents\GitHub\northside_policing_2019\01_logs/00_get_data_20191124T140238.txt
+  log type:  text
+ opened on:  24 Nov 2019, 14:02:38
+
+. 
+. *************** BEGIN ***************
+. *-------------------------------------------------------------
+. * Read in Arrests
+. *-------------------------------------------------------------
+. import excel using "00_data/northside 2014 to 2019.xlsx", firstrow ///
+>   sheet("arrests") clear
+
+. 
+. *-------------------------------------------------------------
+. * Clean variables
+. *-------------------------------------------------------------
+. 
+. * Male/female sex (only functional form available in dataset)
+. gen female = sex == "F"
+
+. gen male = sex == "M"
+
+. 
+. foreach i in female male {
+  2.   replace `i' = . if !inlist(sex, "M", "F")
+  3. }
+(0 real changes made)
+(0 real changes made)
+
+. 
+. * Race (based on North Carolina race classification)
+. gen asian = race == "A"
+
+. gen black = race == "B"
+
+. gen hispanic = race == "H"
+
+. gen native = race == "I"
+
+. gen unknown_race = race == "U"
+
+. gen white = race == "W"
+
+. 
+. foreach i in asian black hispanic native unknown_race white {
+  2.   replace `i' = . if !inlist(race, "A", "B", "H", "I", "U", "W")
+  3. }
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+
+. 
+. gen arrest_date = dofc(date_arr)
+
+. format arrest_date %td
+
+. 
+. gen temp = strltrim(chrgdesc)
+
+. replace chrgdesc = temp
+(2 real changes made)
+
+. drop temp
+
+. 
+. preserve
+
+. gen n = 1
+
+. collapse (sum) n=n, by(chrgdesc)
+
+. gsort -n
+
+. compress
+  variable n was double now int
+  (768 bytes saved)
+
+. save 00_data/arrest_charges, replace
+file 00_data/arrest_charges.dta saved
+
+. export excel using "04_tables/arrest_charges.xlsx", firstrow(var) replace
+file 04_tables/arrest_charges.xlsx saved
+
+. restore
+
+. 
+. *-------------------------------------------------------------
+. * Save Product
+. *-------------------------------------------------------------
+. 
+. drop ObjectID Loc_name Shape
+
+. sort case_id
+
+. 
+. compress
+  variable female was float now byte
+  variable male was float now byte
+  variable asian was float now byte
+  variable black was float now byte
+  variable hispanic was float now byte
+  variable native was float now byte
+  variable unknown_race was float now byte
+  variable white was float now byte
+  variable arrest_date was float now int
+  (14,872 bytes saved)
+
+. save 00_data/arrests_preprocess, replace
+file 00_data/arrests_preprocess.dta saved
+
+. do 01_process_charges
+
+. /*
+> Process Charges
+> Author: Alvin G. Thomas, MSPH
+> 
+> Written for Stata14 SE
+> Created on 2019-10-20
+> Last Edited 2019-10-31
+> 
+> Copyright (c) 2019 Alvin G. Thomas (https://github.com/alvinthomas).
+> It is made available under a CC-BY-SA 4.0 International license.
+> */
+. 
+. ***** PREAMBLE *****
+. clear all
+
+. macro drop _all
+
+. set more off
+
+. 
+. *************** BEGIN ***************
+. *-------------------------------------------------------------
+. * Arrests Charges
+. *-------------------------------------------------------------
+. use 00_data/arrests_preprocess, clear
+
+. 
+. * Arrests
+. 
+. *------------------------------------------
+. * Alcohol
+. *------------------------------------------
+. 
+. gen arrest_charge_alcohol = inlist(chrgdesc, ///
+>   "OPEN CONTAINER", ///
+>   "CONSUME ALCOHOLIC BEVERAGE LESS THAN 21", ///
+>   "PUBLIC CONSUMPTION", ///
+>   "DRUNK / DISRUPTIVE", ///
+>   "CONSUMING ON UNAUTHORIZED PREMISES")
+
+. 
+. replace arrest_charge_alcohol = 1 if inlist(chrgdesc, ///
+>   "UNDERAGE POSS OF SPIRITIOUS LIQUOR", ///
+>   "GIVE/SELL MALT BEV TO MINOR", ///
+>   "POSS /CONSUMING ALCOHOL PASSENGER AREA OF VEH", ///
+>   "FTA ALCOHOL VIOLATION")
+(11 real changes made)
+
+. 
+. replace arrest_charge_alcohol = 1 if inlist(chrgdesc, ///
+>   "CONSUME ON UNAUTHORIZED PREMISE", ///
+>   "CONSUMING ON OFF PREMISES", ///
+>   "LIQUOR  - POSSESSION", ///
+>   "OFA DRUNK AND DISRUPTIVE", ///
+>   "POSSESS ON UNAUTHORIZED PREMISES", ///
+>   "FTA OPEN CONTAINER", ///
+>   "FTA ALCOHOL VIOLATION", ///
+>   "FTA OPEN CONTAINER")
+(6 real changes made)
+
+. 
+. replace arrest_charge_alcohol = 1 if inlist(chrgdesc, ///
+>   "UNDERAGE POSS OF SPIRITIOUS LIQUOR", ///
+>   "POSS /CONSUMING ALCOHOL PASSENGER AREA OF VEH", ///
+>   "GIVE/SELL MALT BEV TO MINOR", ///
+>   "CONSUMING ON OFF PREMISES", ///
+>   "OFA DRUNK AND DISRUPTIVE", ///
+>   "LIQUOR  - POSSESSION", ///
+>   "CONSUME ON UNAUTHORIZED PREMISE")
+(0 real changes made)
+
+. 
+. replace arrest_charge_alcohol = 1 if inlist(chrgdesc, ///
+>   "IMPAIRED DRIVING DWI", ///
+>   "RECKLESS DRIVING", ///
+>   "DRIVING WHILE IMPAIRED", ///
+>   "IMPAIRED DRIVING DWI OFA", ///
+>   "DWLR IMPAIRED REV", ///
+>   "DWLR IMPAIRED REV")
+(32 real changes made)
+
+. 
+. *------------------------------------------
+. * Drug
+. *------------------------------------------
+. 
+. gen arrest_charge_drug = inlist(chrgdesc, ///
+>   "UNDERAGE POSSESSION", ///
+>   "POSSESSION MARIJUANA", ///
+>   "DRUG PARAPHERNALIA", ///
+>   "POSS COCAINE FEL", ///
+>   "POSS MARIJUANA MISD", ///
+>   "POSS COCAINE FEL")
+
+. 
+. replace arrest_charge_drug = 1 if inlist(chrgdesc, ///
+>   "DRUGS-POSS SCHED VI", ///
+>   "POSSESS HEROIN", ///
+>   "DRUGS-MISD POSS", ///
+>   "DRUGS-POSS SCHED VI", ///
+>   "POSSESS HEROIN", ///
+>   "POSSESS ON UNAUTHORIZED PREMISES")
+(4 real changes made)
+
+. 
+. replace arrest_charge_drug = 1 if inlist(chrgdesc, ///
+>   "SELL COCAINE", ///
+>   "DRUGS-MISD POSS", ///
+>   "SELL COCAINE", ///
+>   "POSSESSION ON UNAUTHORIZED PREMISES", ///
+>   "PWISD II CS")
+(5 real changes made)
+
+. 
+. *------------------------------------------
+. * Victimless
+. *------------------------------------------
+. 
+. gen arrest_charge_victimless = inlist(chrgdesc, ///
+>   "FAIL TO APPEAR/COMPL", ///
+>   "RESISTING ARREST", ///
+>   "PROBATION VIOLATION", ///
+>   "LITTERING", ///
+>   "WARRANT FOR ARREST", ///
+>   "SCHOOL-FAIL TO ATTEND")
+
+. 
+. replace arrest_charge_victimless = 1 if inlist(chrgdesc, ///
+>   "NOISE ORDINANCE VIOLATION", ///
+>   "FICT/ALT TITLE/REG CARD/TAG", ///
+>   "PAROLE VIOLATION", ///
+>   "UNAUTHORIZED USE OF MOTOR VEHICLE")
+(7 real changes made)
+
+. 
+. replace arrest_charge_victimless = 1 if inlist(chrgdesc, ///
+>   "RESIST, DELAY AND OBSTRUCT", ///
+>   "MISUSE OF 911", ///
+>   "OFA THREATS, PANHANDLING", ///
+>   "FAIL TO APPEAR/COMPL ON A FELONY", ///
+>   "MISUSE OF 911", ///
+>   "RESIST DELAY AND OBSTRUCT", ///
+>   "OFA THREATS, PANHANDLING", ///
+>   "PAROLE OR PROBATION VIOLATION")
+(6 real changes made)
+
+. 
+. replace arrest_charge_victimless = 1 if inlist(chrgdesc, ///
+>   "MISUSE OF PUBLIC SEATING", ///
+>   "COMMON LAW-GOING ARMED", ///
+>   "INTERFERE W/EMERGENCY COMMUNICATIONS", ///
+>   "RESIST DELAY AND OBSTRUCT")
+(4 real changes made)
+
+. 
+. replace arrest_charge_victimless = 1 if inlist(chrgdesc, ///
+>   "PAROLE OR PROBATION VIOLATION", ///
+>   "PAROLE VIOLATION", ///
+>   "MISUSE OF PUBLIC SEATING", ///
+>   "NOISE ORDINANCE VIOLATION", ///
+>   "FAIL TO APPEAR/COMPL ON A FELONY", ///
+>   "RESIST, DELAY AND OBSTRUCT", ///
+>   "INTERFERE W/EMERGENCY COMMUNICATIONS")
+(0 real changes made)
+
+. 
+. *------------------------------------------
+. * Moving
+. *------------------------------------------
+. 
+. gen arrest_charge_moving = inlist(chrgdesc, ///
+>   "HIT & RUN - PD", ///
+>   "FTA-DWLR", ///
+>   "NDL - OPERATOR OR CHAUFFER", ///
+>   "DWLR NOT IMPARIED REV", ///
+>   "FTA (DWLR NOT IMPAIRED, NO LIABILITY INSURANCE)", ///
+>   "FAIL TO BURN HEADLAMPS")
+
+. 
+. replace arrest_charge_moving = 1 if inlist(chrgdesc, ///
+>   "IMPEDE THE FLOW OF TRAFFIC", ///
+>   "DRIVING W/LIC REVOKED", ///
+>   "FICT/ALT TITLE/REG CARD/TAG", ///
+>   "PROVISIONAL LICENSEE", ///
+>   "UNAUTHORIZED USE OF MOTOR VEHICLE")
+(6 real changes made)
+
+. 
+. *------------------------------------------
+. * Theft
+. *------------------------------------------
+. 
+. gen arrest_charge_theft = inlist(chrgdesc, ///
+>   "POSS STOLEN GOODS", ///
+>   "LARCENY -  ALL OTHER", ///
+>   "BREAKING/LARC-FELONY", ///
+>   "BREAKING/ENTER-MISD", ///
+>   "LARCENY", ///
+>   "BURGLARY-1ST DEGREE", ///
+>   "POSS OF STOLEN GOODS", ///
+>   "ROBBERY", ///
+>   "BURGLARY-2ND DEGREE")
+
+. 
+. replace arrest_charge_theft = 1 if inlist(chrgdesc, ///
+>   "COMMON LAW ROBBERY", ///
+>   "REC STOLEN GOODS", ///
+>   "LARCENY FROM PERSON", ///
+>   "LARCENY OF MOTOR VEHICLE", ///
+>   "CONCEALING MDSE/SHOPLIFTING")
+(8 real changes made)
+
+. 
+. replace arrest_charge_theft = 1 if inlist(chrgdesc, ///
+>   "POSS STOLEN MOTOR VEH", ///
+>   "REC/POSS STOLE MV", ///
+>   "COMMON LAW ROBBERY", ///
+>   "LARCENY FROM PERSON", ///
+>   "REC STOLEN GOODS", ///
+>   "ATTEMPTED BURGLARY-2ND DEGREE", ///
+>   "LARCENY -  BEER", ///
+>   "OFA M LARCENY")
+(6 real changes made)
+
+. 
+. replace arrest_charge_theft = 1 if inlist(chrgdesc, ///
+>   "REC/POSS STOLE MV", ///
+>   "OFA M LARCENY", ///
+>   "LARCENY OF MOTOR VEHICLE", ///
+>   "LARCENY -  BEER", ///
+>   "ATTEMPTED BURGLARY-2ND DEGREE", ///
+>   "COMMON LAW-GOING ARMED", ///
+>   "POSS STOLEN MOTOR VEH", ///
+>   "CONCEALING MDSE/SHOPLIFTING")
+(1 real change made)
+
+. 
+. *------------------------------------------
+. * Assult
+. *------------------------------------------
+. 
+. gen arrest_charge_assult = inlist(chrgdesc, ///
+>   "ASSAULT ON FEMALE", ///
+>   "SIMPLE ASSAULT", ///
+>   "ASSAULT ON GOVERNMENT OFFICIAL", ///
+>   "ASSAULT INFLICTING SERIOUS INJURY", ///
+>   "AWIK/SERIOUS INJURY", ///
+>   "PHYSICAL SIMPLE ASSAULT-NON AGGRAVATED", ///
+>   "ASSAULT ON EMERGENCY PERSONNEL", ///
+>   "ASSAULT ON FEMALE/SIMPLE ASSAULT")
+
+. 
+. replace arrest_charge_assult = 1 if inlist(chrgdesc, ///
+>   "ASSAULT ON OFFICER/SIMPLE ASSAULT", ///
+>   "ASSAULT-SIMPLE", ///
+>   "ASSAULT BY STRANGULATION", ///
+>   "OFA SIMPLE ASSAULT", ///
+>   "ASSAULT ON OFFICER/SIMPLE ASSAULT", ///
+>   "ASSAULT-SIMPLE")
+(4 real changes made)
+
+. 
+. replace arrest_charge_assult = 1 if inlist(chrgdesc, ///
+>   "ASSAULT BY STRANGULATION", ///
+>   "OFA SIMPLE ASSAULT", ///
+>   "AFFRAY/ASSAULT & BATTERY", ///
+>   "ASSAULT & BATTERY")
+(9 real changes made)
+
+. 
+. *------------------------------------------
+. * Property
+. *------------------------------------------
+. 
+. gen arrest_charge_property = inlist(chrgdesc, ///
+>   "2ND DEGREE TRESPASS", ///
+>   "TRESPASSING", ///
+>   "DAMAGE-PERSONAL PROP", ///
+>   "1ST DEGREE TRESPASS", ///
+>   "B&E-VEHICLE", ///
+>   "DAMAGE-REAL PROPERTY", ///
+>   "CYBERSTALKING", ///
+>   "VANDALISM", ///
+>   "FRAUD-OBT PROPERTY")
+
+. 
+. replace arrest_charge_property = 1 if inlist(chrgdesc, ///
+>   "ATTEMPTED BREAKING/ENTER-MISD", ///
+>   "HIT/RUN LEAVE SCENE OF PROPERTY DAMAGE", ///
+>   "OFA SECOND DEGREE TRESPASS", ///
+>   "VANDALISM", ///
+>   "FAIL RETUR RENT PROP", ///
+>   "ATTEMPTED BREAKING/ENTER-MISD", ///
+>   "OFA SECOND DEGREE TRESPASS", ///
+>   "HIT/RUN LEAVE SCENE OF PROPERTY DAMAGE")
+(4 real changes made)
+
+. 
+. *------------------------------------------
+. * Personal
+. *------------------------------------------
+. 
+. gen arrest_charge_personal = inlist(chrgdesc, ///
+>   "VIOLATION DOMESTIC VIOLENCE PROTECTIVE ORDER", ///
+>   "AFFRAY/ASSAULT & BATTERY", ///
+>   "ASSAULT & BATTERY", ///
+>   "CRUELTY TO ANIMALS", ///
+>   "CRUELTY TO ANIMALS (CITY ORDINANCE)", ///
+>   "SECOND DEGREE KIDNAPPING")
+
+. 
+. replace arrest_charge_personal = 1 if inlist(chrgdesc, ///
+>   "EXPLOIT DISABLE/ELDER CAPACITY", ///
+>   "COMMUNICATING THREATS", ///
+>   "COMMUNICATE THREATS", ///
+>   "CHILD ABUSE-ASSAULTIVE/ NO INJURY", ///
+>   "VIOLATION DOMESTIC VIOLENCE PROTECTIVE ORDER", ///
+>   "SECOND DEGREE KIDNAPPING", ///
+>   "EXPLOIT DISABLE/ELDER CAPACITY")
+(4 real changes made)
+
+. 
+. replace arrest_charge_personal = 1 if inlist(chrgdesc, ///
+>   "CRUELTY TO ANIMALS", ///
+>   "CRUELTY TO ANIMALS (CITY ORDINANCE)", ///
+>   "COMMUNICATE THREATS", ///
+>   "VIOLATION DVPO", ///
+>   "COMMUNICATING THREATS")
+(1 real change made)
+
+. 
+. *------------------------------------------
+. * Financial
+. *------------------------------------------
+. 
+. gen arrest_charge_financial = inlist(chrgdesc, ///
+>   "DEFRAUD INNKEEPER", ///
+>   "CREDIT CARD FRAUD", ///
+>   "FINANCIAL CARD THEFT", ///
+>   "VIOLATION DVPO", ///
+>   "FAIL RETUR RENT PROP", ///
+>   "FORGERY", ///
+>   "FINANCIAL CARD THEFT")
+
+. 
+. replace arrest_charge_financial = 1 if inlist(chrgdesc, ///
+>   "EMBEZZLEMENT OF STATE PROPERTY", ///
+>   "CREDIT CARD FRAUD", ///
+>   "POSS OR MANUFACUTRE OF FRADUENT FORMS OF IDENTIFICATION", ///
+>   "DEFRAUD INNKEEPER", ///
+>   "EMBEZZLEMENT OF STATE PROPERTY", ///
+>   "POSS OR MANUFACTURE  FRAUDULENT FORMS OF ID", ///
+>   "POSS OR MANUFACUTRE OF FRADUENT FORMS OF IDENTIFICATION", ///
+>   "FORGERY")
+(4 real changes made)
+
+. 
+. *------------------------------------------
+. * Sexual
+. *------------------------------------------
+. 
+. gen arrest_charge_sexual = inlist(chrgdesc, ///
+>   "RAPE-2ND DEGREE", ///
+>   "RAPE 1ST DEGREE", ///
+>   "PEEPING", ///
+>   "INDECENT EXPOSURE", ///
+>   "PUBLIC URINATION", ///
+>   "FAIL TO REGISTER - SEX OFFENDER REGISTRATION", ///
+>   "SEX OFFENDER UNLAWFULLY ON PREMISES.")
+
+. 
+. *------------------------------------------
+. * Final
+. *------------------------------------------
+. gen arrest_cat  = .
+(572 missing values generated)
+
+. replace arrest_cat = 1 if arrest_charge_alcohol == 1
+(195 real changes made)
+
+. replace arrest_cat = 2 if arrest_charge_drug == 1
+(77 real changes made)
+
+. replace arrest_cat = 3 if arrest_charge_victimless == 1
+(105 real changes made)
+
+. replace arrest_cat = 4 if arrest_charge_moving == 1
+(15 real changes made)
+
+. replace arrest_cat = 5 if arrest_charge_theft == 1
+(67 real changes made)
+
+. replace arrest_cat = 6 if arrest_charge_assult == 1
+(34 real changes made)
+
+. replace arrest_cat = 7 if arrest_charge_property == 1
+(40 real changes made)
+
+. replace arrest_cat = 8 if arrest_charge_personal == 1
+(23 real changes made)
+
+. replace arrest_cat = 9 if arrest_charge_financial == 1
+(10 real changes made)
+
+. replace arrest_cat = 10 if arrest_charge_sexual == 1
+(22 real changes made)
+
+. label define arrest_cat 1 "Alcohol" 2 "Drug" 3 "Victimless Crime" ///
+>   4 "Moving Crime" 5 "Theft" 6 "Assult" 7 "Property Crime" ///
+>   8 "Personal" 9 "Financial/Fraud" 10 "Sexual Crime"
+
+. label values arrest_cat arrest_cat
+
+. 
+. *************** END *****************
+. 
+end of do-file
+
+. compress
+  variable arrest_charge_alcohol was float now byte
+  variable arrest_charge_drug was float now byte
+  variable arrest_charge_victimless was float now byte
+  variable arrest_charge_moving was float now byte
+  variable arrest_charge_theft was float now byte
+  variable arrest_charge_assult was float now byte
+  variable arrest_charge_property was float now byte
+  variable arrest_charge_personal was float now byte
+  variable arrest_charge_financial was float now byte
+  variable arrest_charge_sexual was float now byte
+  variable arrest_cat was float now byte
+  (18,876 bytes saved)
+
+. save 00_data/arrests, replace
+file 00_data/arrests.dta saved
+
+. export excel using "00_data/arrests.xlsx", firstrow(var) replace
+file 00_data/arrests.xlsx saved
+
+. 
+. *-------------------------------------------------------------
+. * Read in Incidents
+. *-------------------------------------------------------------
+. import excel using "00_data/northside 2014 to 2019.xlsx", firstrow ///
+>   sheet("incdentslatlong") clear
+
+. 
+. drop if X == 0
+(2 observations deleted)
+
+. 
+. *-------------------------------------------------------------
+. * Clean variables
+. *-------------------------------------------------------------
+. 
+. gen report_date_full = clock(date_rept , "MD20Yhm")
+
+. gen report_date = dofc(report_date_full)
+
+. format report_date %td
+
+. 
+. rename chrgdesc incidentdesc
+
+. 
+. gen temp = strltrim(incidentdesc)
+
+. replace incidentdesc = temp
+(111 real changes made)
+
+. drop temp
+
+. 
+. rename X X_incident
+
+. rename Y Y_incident
+
+. 
+. preserve
+
+. gen n = 1
+
+. collapse (sum) n=n, by(incidentdesc)
+
+. gsort -n
+
+. compress
+  variable n was double now byte
+  (2,191 bytes saved)
+
+. save 00_data/incident_charges, replace
+file 00_data/incident_charges.dta saved
+
+. export excel using "04_tables/incident_charges.xlsx", firstrow(var) replace
+file 04_tables/incident_charges.xlsx saved
+
+. restore
+
+. 
+. *-------------------------------------------------------------
+. * Save Product
+. *-------------------------------------------------------------
+. 
+. sort inci_id
+
+. gen unique_id = _n
+
+. 
+. compress
+  variable report_date was float now int
+  variable unique_id was float now int
+  variable csstatus was str6 now str1
+  (15,255 bytes saved)
+
+. save 00_data/incident_preprocess, replace
+file 00_data/incident_preprocess.dta saved
+
+. do 03_process_incidents
+
+. /*
+> Process Charges
+> Author: Alvin G. Thomas, MSPH
+> 
+> Written for Stata14 SE
+> Created on 2019-11-06
+> Last Edited 2019-11-07
+> 
+> Copyright (c) 2019 Alvin G. Thomas (https://github.com/alvinthomas).
+> It is made available under a CC-BY-SA 4.0 International license.
+> */
+. 
+. ***** PREAMBLE *****
+. clear all
+
+. macro drop _all
+
+. set more off
+
+. 
+. *************** BEGIN ***************
+. *-------------------------------------------------------------
+. * Incidents Charges
+. *-------------------------------------------------------------
+. use 00_data/incident_preprocess, clear
+
+. 
+. * Incidents
+. 
+. *------------------------------------------
+. * Party
+. *------------------------------------------
+. 
+. gen incident_party = inlist(incidentdesc, ///
+>   "LOUD MUSIC/PARTY", ///
+>   "LOUD MUSIC/PARTY/OTHER NOISE", ///
+>   "LOUD PARTY FOLLOW UP", ///
+>   " LOUD PARTY", ///
+>   "LOUD MUSIC")
+
+. 
+. replace incident_party = 1 if inlist(incidentdesc, ///
+>   " LOUD MUSIC", ///
+>   "LOUD PARTY", ///
+>   "LOUD MUSIC/PARTY", ///
+>   "LOUD NOISE")
+(8 real changes made)
+
+. 
+. *------------------------------------------
+. * Alcohol
+. *------------------------------------------
+. 
+. gen incident_alcohol = inlist(incidentdesc, ///
+>   "ALCOHOL VIOLATIONS", ///
+>   "OPEN CONTAINER", ///
+>   "OPEN CONTAINER OF MALT BEVERAGE", ///
+>   "UNDERAGE CONSUMPTION", ///
+>   "DRUNK AND DISRUPTIVE", ///
+>   "INTOXICATED AND DISRUPTIVE", ///
+>   "PUBLIC INEBRIATE", ///
+>   "PUBLIC CONSUMPTION", ///
+>   "OPEN CONTAINER VIOLATION")
+
+. 
+. 
+. replace incident_alcohol = 1 if inlist(incidentdesc, ///
+>   "DRIVING WHILE IMPAIRED", ///
+>   "IMPAIRED DRIVING DWI")
+(9 real changes made)
+
+. 
+. *------------------------------------------
+. * Drug
+. *------------------------------------------
+. 
+. gen incident_drug = inlist(incidentdesc, ///
+>   "DRUG VIOLATIONS", ///
+>   "SIMPLE POSSESSION", ///
+>   "OVERDOSE", ///
+>   "EQUIP/PARAPHERNALIA-POSS/CONCEALING", ///
+>   "UNDERAGE POSSESSION")
+
+. 
+. replace incident_drug = 1 if inlist(incidentdesc, ///
+>   "NARCOTIC SNIFF", ///
+>   "SIMPLE POSSESSION OF MARIJUANA", ///
+>   "PARAPHERNALIA- USING/ EQUIPMENT", ///
+>   "SELL CRACK COCAINE", ///
+>   "NARCOTIC INVESTIGATION", ///
+>   "FELONY POSSESSION OF COCAINE", ///
+>   "PARAPHERNALIA- POSSESSING/CONCEALING EQUIPMENT", ///
+>   "EQUIPMENT/PARAPHERNALIA-MANUFACTURING")
+(12 real changes made)
+
+. 
+. replace incident_drug = 1 if inlist(incidentdesc, ///
+>   "POSSIBLE DRUG ACTIVITY", ///
+>   "POSSESSION OF MARIJUANA", ///
+>   "SELL COCAINE", ///
+>   "DRUG VIOLATION- OTHER", ///
+>   "POSSIBLE DRUG USE", ///
+>   "POSSESSION OF COCAINE", ///
+>   "POSSESSION OF DRUG PARAPHERNALIA", ///
+>   "NARCOTIC IVIOLATION", ///
+>   "SELL AND DELIVER SCH I")
+(9 real changes made)
+
+. 
+. *------------------------------------------
+. * Domestic
+. *------------------------------------------
+. 
+. gen incident_domestic = inlist(incidentdesc, ///
+>   "DOMESTIC DISTURBANCE/NO ASSAULT", ///
+>   "DOMESTIC DISTURBANCE", ///
+>   "CIVIL MATTER", ///
+>   "CIVIL DISPUTE OVER MONEY", ///
+>   "DOMESTIC DISTURBANCE- POSSIBLE ASSAULT", ///
+>   "VERBAL DOMESTIC", ///
+>   "ARGUMENT OVER CHILD CARE", ///
+>   "CIVIL DISPUTE", ///
+>   "DISPUTE")
+
+. 
+. *------------------------------------------
+. * Information
+. *------------------------------------------
+. 
+. gen incident_information = inlist(incidentdesc, ///
+>   "INFORMATION", ///
+>   "BARKING DOGS", ///
+>   "DOG CALL", ///
+>   "SUSPICIOUS PERSON", ///
+>   "SUSPICIOUS VEHICLE", ///
+>   "SUSPICIOUS CONDITION", ///
+>   " SUSPICIOUS CONDITION")
+
+. 
+. replace incident_information = 1 if inlist(incidentdesc, ///
+>   "NUISANCE COMPLAINT", ///
+>   "SUSPICIOUS CONDITIONS", ///
+>   "SUSPICIOUS", ///
+>   "SUSPICIOUS ACTIVITY", ///
+>   "SUSPICIOUS CIRCUMSTANCES", ///
+>   "INFORMATION-JUVENILE ASSIST", ///
+>   "SUSPICIOUS PERSONS", ///
+>   "CHECK WELL BEING")
+(22 real changes made)
+
+. 
+. replace incident_information = 1 if inlist(incidentdesc, ///
+>   "VEHICLE FIRE", ///
+>   "ANIMAL CALL", ///
+>   "PROPERTY CHECK", ///
+>   "UNLOCK VEHICLE", ///
+>   "DUSTURBANCE", ///
+>   "SUSPICIOUS NOISE", ///
+>   "WELL BEING CHECK", ///
+>   "GOOD NEIGHBOR/NATIONAL NIGHT OUT", ///
+>   "GUNSHOTS HEARD")
+(9 real changes made)
+
+. 
+. replace incident_information = 1 if inlist(incidentdesc, ///
+>   "REPORT OF GUNSHOTS", ///
+>   "SUSPICIOUS BEHAVIOR", ///
+>   "SUSPICIOUS INCIDENT", ///
+>   "CHECK WELL-BEING", ///
+>   "GUN SHOTS HEARD", ///
+>   "ABANDONED HOUSE/PROERTY", ///
+>   "ANIMAL CONCERN")
+(7 real changes made)
+
+. 
+. replace incident_information = 1 if inlist(incidentdesc, ///
+>   "INFORMATION(DUPLICATE REPORT)", ///
+>   "POLICE ADVICE", ///
+>   "INFORMATION LANDLORD DISPUTE", ///
+>   "NOISY FOWL", ///
+>   "UNFOUNDED LOUD NOISE", ///
+>   "GUNSHOTS")
+(6 real changes made)
+
+. 
+. *------------------------------------------
+. * Theft
+. *------------------------------------------
+. 
+. gen incident_theft = inlist(incidentdesc, ///
+>   "LARCENY- ALL OTHER", ///
+>   "B&E  , LARCENY F/VEHICLE", ///
+>   "B&E RESIDENCE-FORCE", ///
+>   "B&E RESIDENCE NO FORCE", ///
+>   "LARCENY OF BICYCLE", ///
+>   "B&E LARCENY FROM VEHICLE")
+
+. 
+. replace incident_theft = 1 if inlist(incidentdesc, ///
+>   "BURGLARY-NO FORCE", ///
+>   "B&E VEH (ATT LAR F/VEH)", ///
+>   "LARCENY FROM MOTOR VEHICLE", ///
+>   "LARCENY FROM RESIDENCE", ///
+>   "BURGLARY W/FORCE", ///
+>   "AUTOMOBILE THEFT")
+(87 real changes made)
+
+. 
+. replace incident_theft = 1 if inlist(incidentdesc, ///
+>   "ARMED ROBBERY", ///
+>   "LARCENY OF CELL PHONE", ///
+>   "LARCENY", ///
+>   "LARCENY AFTER B&E", ///
+>   "ROBBERY", ///
+>   "LARCENY FROM BUILDING")
+(45 real changes made)
+
+. 
+. replace incident_theft = 1 if inlist(incidentdesc, ///
+>   "B&E VEH", ///
+>   "POSSESSING/CONCEALING STOLEN PROPERTY", ///
+>   "LARCENY FROM AUTO /PARTS AND ACCESSORIES", ///
+>   "LARCENY OF MOTORCYCLE / MOPED", ///
+>   "POSSESSING STOLEN PROPERTY", ///
+>   "B&E SHED-FORCE", ///
+>   "LARCENY OF DOG")
+(19 real changes made)
+
+. 
+. replace incident_theft = 1 if inlist(incidentdesc, ///
+>   "LARCENY- MEDICATION", ///
+>   "LARCENY OF STREET SIGN", ///
+>   "LARCENY OF WATCH", ///
+>   "LARCENY OF WATER", ///
+>   "LARCENY FROM PERSON", ///
+>   "LARCENY OF MEDICATIONS", ///
+>   " ARMED ROBBERY")
+(6 real changes made)
+
+. 
+. replace incident_theft = 1 if inlist(incidentdesc, ///
+>   "LARCENY OF CELLPHONE", ///
+>   "LARCENY OF PATIO CUSHIONS", ///
+>   "LARCENY OF A LAWN MOWER", ///
+>   "POSSESS STOLEN PROPERTY", ///
+>   "LARCENY- OF BICYCLE", ///
+>   "STRONG ARM ROBBERY", ///
+>   "POSSIBLE STOLEN BICYCLE", ///
+>   "LARCENY OF A LICENSE PLATE")
+(8 real changes made)
+
+. 
+. replace incident_theft = 1 if inlist(incidentdesc, ///
+>   "POSSESSING STOLEN FIREARM", ///
+>   "LARCENY OF SCOOTER", ///
+>   "LARCENY OF MAIL", ///
+>   "LARCENY OF MOTORCYCLE", ///
+>   "LARCENY OF MOTOR VEHICLE", ///
+>   "POSS OF STOLEN GOODS", ///
+>   "REC/POSS STOLE MV", ///
+>   "PURSE SNATCHING")
+(8 real changes made)
+
+. 
+. replace incident_theft = 1 if inlist(incidentdesc, ///
+>   "POSS STOLEN PROPERTY", ///
+>   "LARCENY- CELL PHONE", ///
+>   "LARCENY OF PACKAGES", ///
+>   "LARCENY OF A BICYCLE", ///
+>   "POSSESSING STOLEN VEHICLE", ///
+>   "LARCENY OF FIREARM", ///
+>   "LARCENY OF LAWN CHAIR", ///
+>   "B&E VEHICLE(ATT LARCENY)")
+(8 real changes made)
+
+. 
+. *------------------------------------------
+. * Property
+. *------------------------------------------
+. 
+. gen incident_property = inlist(incidentdesc, ///
+>   "TRESPASSING", ///
+>   "VANDALISM / DAMAGE TO PROPERTY (WILLFUL)", ///
+>   "DAMAGE TO PROPERTY(NON-CRIMINAL)", ///
+>   "DAMAGE TO PROPERTY", ///
+>   "VEHICLE DAMAGE")
+
+. 
+. replace incident_property = 1 if inlist(incidentdesc, ///
+>   "ALARM", ///
+>   "DAMAGE TO PROPERTY (WILLFUL)", ///
+>   "ARSON", ///
+>   "ABANDONED PROPERTY", ///
+>   "B&E BUSINESS-FORCE", ///
+>   "GRAFFITI VANDALISM")
+(12 real changes made)
+
+. 
+. replace incident_property = 1 if inlist(incidentdesc, ///
+>   "VANDALISM/DAMAGE TO PROPERTY", ///
+>   "1ST DEGREE TRESPASS", ///
+>   " DAMAGE TO PROPERTY (WILLFUL)", ///
+>   "B&E VEH (NO PROPERTY TAKEN)", ///
+>   "2ND DEGREE TRESPASSING")
+(4 real changes made)
+
+. 
+. *------------------------------------------
+. * Moving
+. *------------------------------------------
+. 
+. gen incident_moving = inlist(incidentdesc, ///
+>   "TOWED VEHICLE", ///
+>   "TRAFFIC COMPLAINT", ///
+>   "UNAUTHORIZED USE OF CONVEYANCE", ///
+>   "DWLR", ///
+>   "TRAFFIC / DIRECTED PATROL", ///
+>   "NOL")
+
+. 
+. replace incident_moving = 1 if inlist(incidentdesc, ///
+>   "NO INSURANCE", ///
+>   "FICT/ALT TITLE/REG CARD/TAG", ///
+>   "IMPROPERLY PARKED VEHICLE", ///
+>   "LICENSE CHECKPOINT", ///
+>   " PARKING COMPLAINT")
+(8 real changes made)
+
+. 
+. replace incident_moving = 1 if inlist(incidentdesc, ///
+>   "ILLEGALLY PARKED VEHICLE", ///
+>   "UNSAFE MOVEMENT", ///
+>   "TRAFFIC COMPLAINT-RESIDENTIAL PARKING", ///
+>   "HIT & RUN")
+(4 real changes made)
+
+. 
+. replace incident_moving = 1 if inlist(incidentdesc, ///
+>   "NDL - OPERATOR OR CHAUFFER", ///
+>   "UNAUTHORIZED USE OF BICYCLE", ///
+>   "DRIVING WHILE LICENSE REVOKED", ///
+>   "IMPROPERLY PARKED VEHICLES", ///
+>   "SPEEDING", ///
+>   "TRAFFIC STOP")
+(6 real changes made)
+
+. 
+. replace incident_moving = 1 if inlist(incidentdesc, ///
+>   "VEHICLE SEARCH", ///
+>   "RECKLESS DRIVING", ///
+>   "CRASH INVESTIGATION", ///
+>   "PARKING COMPLAINT", ///
+>   "HIT AND RUN", ///
+>   "PARKING DISPUTE")
+(7 real changes made)
+
+. 
+. *------------------------------------------
+. * Victimless
+. *------------------------------------------
+. 
+. gen incident_victimless = inlist(incidentdesc, ///
+>   "DISTURBING THE PEACE", ///
+>   "DISTURBANCE", ///
+>   "RESISTING ARREST", ///
+>   "REFUSE TO LEAVE", ///
+>   "LITTERING")
+
+. 
+. replace incident_victimless = 1 if inlist(incidentdesc, ///
+>   "PROBATION VIOLATION", ///
+>   "UNDISCIPLINED CHILD", ///
+>   "NUISANCE", ///
+>   "DISCHARGING FIREARM", ///
+>   "POSSESSION OF A FIREARM BY FELON")
+(9 real changes made)
+
+. 
+. replace incident_victimless = 1 if inlist(incidentdesc, ///
+>   "WEAPON ON SCHOOL PROPERTY", ///
+>   "RESIST, DELAY AND OBSTRUCT", ///
+>   "MISUSE OF PUBLIC SEATING", ///
+>   "MENTAL DISORDER", ///
+>   "BARKING DOG", ///
+>   "EMERGENCY COMMITMENT-NON CRIMINAL DETAINMENT", ///
+>   "VICIOUS DOG/LEASH LAW VIOLATION")
+(7 real changes made)
+
+. 
+. replace incident_victimless = 1 if inlist(incidentdesc, ///
+>   "DISCHARGING PYROTECHNICS - USE/FIREWORKS", ///
+>   "REFUSAL TO LEAVE", ///
+>   "DOG BARKING COMPLAINT", ///
+>   "ABANDONED VEHICLES", ///
+>   "ASSIST PROBATION", ///
+>   "RESIST/DELAY/OBSTRUCT", ///
+>   "RUNAWAY")
+(7 real changes made)
+
+. 
+. replace incident_victimless = 1 if inlist(incidentdesc, ///
+>   "FIREWORKS / GUNSHOTS", ///
+>   "POSSESS FIREARM BY FELON", ///
+>   "FAILURE TO APPEAR", ///
+>   "OUTSTANDING WARRANT")
+(4 real changes made)
+
+. 
+. *------------------------------------------
+. * Assult
+. *------------------------------------------
+. 
+. gen incident_assult = inlist(incidentdesc, ///
+>   "SIMPLE ASSAULT-OTHER", ///
+>   "DOMESTIC SIMPLE  ASSAULT", ///
+>   "ASSAULT ON FEMALE", ///
+>   "ASSAULT ON LEO", ///
+>   "ASSIST CPS")
+
+. 
+. replace incident_assult = 1 if inlist(incidentdesc, ///
+>   "ASSAULT WITH A DEADLY WEAPON", ///
+>   "PHYSICAL SIMPLE ASSAULT-NON AGGRAVATED", ///
+>   "SIMPLE ASSAULT", ///
+>   "DOMESTIC AGGRAVATED ASSAULT")
+(20 real changes made)
+
+. 
+. replace incident_assult = 1 if inlist(incidentdesc, ///
+>   "AWDWIKISI", ///
+>   "ASSAULT INFLICTING SERIOUS INJURY", ///
+>   "AGGRAVATED ASSAULT", ///
+>   "MURDER & NONNEGLIENT MANSLAUGHTER", ///
+>   "PHYSICAL SIMPLE ASSAULT")
+(5 real changes made)
+
+. 
+. *------------------------------------------
+. * Personal
+. *------------------------------------------
+. 
+. gen incident_personal = inlist(incidentdesc, ///
+>   "COMMUNICATING THREATS -INTIMIDATION, NON PHYSICAL THREAT", ///
+>   "HARASSMENT", ///
+>   "FIGHTING/ AFFRAY", ///
+>   "DEATH INVESTIGATION", ///
+>   "KIDNAPPING", ///
+>   "THREATENING PHONE CALLS")
+
+. 
+. replace incident_personal = 1 if inlist(incidentdesc, ///
+>   "IDENTITY THEFT", ///
+>   "50B ORDER VIOLATION", ///
+>   "VERBAL ARGUMENT", ///
+>   "CRUELTY TO ANIMALS (CITY ORDINANCE)", ///
+>   "MISSING PERSON", ///
+>   "ANIMAL ABUSE")
+(18 real changes made)
+
+. 
+. replace incident_personal = 1 if inlist(incidentdesc, ///
+>   "CHILD NEGLECT (NO ASSAULT)", ///
+>   "COMMUNICATING THREATS", ///
+>   "HARASSING PHONE CALLS-NO THREATS", ///
+>   "DOG BITES AND ATTACKS")
+(8 real changes made)
+
+. 
+. replace incident_personal = 1 if inlist(incidentdesc, ///
+>   "WELL-BEING CHECK", ///
+>   "NEIGHBOR DISPUTE", ///
+>   "COMMUNICATING UNWANTED ADVANCES", ///
+>   "CHILD ABUSE/ASSAULT-NO INJURY")
+(6 real changes made)
+
+. 
+. replace incident_personal = 1 if inlist(incidentdesc, ///
+>   "ATTEMPTED B&E RESIDENCE-FORCE", ///
+>   "CHILD ABUSE/ASSAULT-N INJURY", ///
+>   "HOMICIDAL THREATS", ///
+>   "SUICIDAL THREATS", ///
+>   "PROTECTIVE ORDER VIOLATION", ///
+>   "CHILD ABUSE-NON ASSAULTIVE", ///
+>   "50B VIOLATION")
+(7 real changes made)
+
+. 
+. *------------------------------------------
+. * Financial
+. *------------------------------------------
+. 
+. gen incident_financial = inlist(incidentdesc, ///
+>   "FRAUD-ALL OTHER", ///
+>   "CREDIT CARD/ATM FRAUD", ///
+>   "CREDIT CARD FRAUD", ///
+>   "OBTAINING MONEY BY FALSE PRETENSE", ///
+>   "USING FRAUDULENT ID CARD", ///
+>   "FORGERY- USING/UTTERING", ///
+>   "OBTAINING PROPERTY FALSE PRETENSE")
+
+. 
+. replace incident_financial = 1 if inlist(incidentdesc, ///
+>   "FRAUDULENT FACEBOOK ACCOUNT", ///
+>   "UNLAWFULLY OBTAINING CREDIT CARD", ///
+>   "PHONE SCAM", ///
+>   "TOWING SCAM", ///
+>   "EMBEZZLEMENT- OTHER", ///
+>   "FRAUD", ///
+>   "FICTITIOUS TAG", ///
+>   "IPVS")
+(8 real changes made)
+
+. 
+. *------------------------------------------
+. * Sexual
+. *------------------------------------------
+. 
+. gen incident_sexual = inlist(incidentdesc, ///
+>   "SEXUAL BATTERY", ///
+>   "INDECENT EXPOSURE", ///
+>   "PEEPING TOM", ///
+>   "URINATING IN PUBLIC", ///
+>   "STALKING")
+
+. 
+. replace incident_sexual = 1 if inlist(incidentdesc, ///
+>   "SEXUAL ASSAULT", ///
+>   "FORCIBLE RAPE", ///
+>   "STATUTORY RAPE", ///
+>   "AGGRAVATED ASSAULT WITH SEXUAL MOTIVES", ///
+>   "SEXUAL HARASSMENT")
+(7 real changes made)
+
+. 
+. *------------------------------------------
+. * Non-crime
+. *------------------------------------------
+. 
+. gen incident_non_crime = inlist(incidentdesc, ///
+>   "ASSIST EMS", ///
+>   "FOUND PROPERTY", ///
+>   "COMMUNITY OUTREACH", ///
+>   "ABANDONED VEHICLE", ///
+>   "ASSIST OTHER AGENCY", ///
+>   "PUBLIC ASSISTANCE")
+
+. 
+. replace incident_non_crime = 1 if inlist(incidentdesc, ///
+>   "FUNERAL ESCORT", ///
+>   "VOLUNTARY MENTAL COMMITMENT", ///
+>   "INVOLUNTARY COMMITMENT-NON CRIMINAL DETAINMENT", ///
+>   "LOST PROPERTY")
+(43 real changes made)
+
+. 
+. replace incident_non_crime = 1 if inlist(incidentdesc, ///
+>   "WARRANT SERVICE", ///
+>   "CHECK ON WELL BEING", ///
+>   "DOMESTIC ASSISTANCE", ///
+>   "ASSIST FIRE DEPARTMENT", ///
+>   "ASSIST CITIZEN", ///
+>   "ATTEMPTED SUICIDE")
+(18 real changes made)
+
+. 
+. replace incident_non_crime = 1 if inlist(incidentdesc, ///
+>   "CHECK ON WELL-BEING", ///
+>   "K9 SNIFF", ///
+>   "K-9 SNIFF", ///
+>   "VEHICLE UNLOCK", ///
+>   "K-9 DEMO/ COMMUNITY TALK")
+(9 real changes made)
+
+. 
+. replace incident_non_crime = 1 if inlist(incidentdesc, ///
+>   "CALL FOR SERVICE", ///
+>   "FOUND I PHONE", ///
+>   "ASSISTANCE", ///
+>   "ASSIST OC EMS", ///
+>   "ASSIST EMS (SUICIDE ATTEMPT)")
+(6 real changes made)
+
+. 
+. replace incident_non_crime = 1 if inlist(incidentdesc, ///
+>   "ANIMAL DISPATCH", ///
+>   "FOUND PURSE", ///
+>   "CARDIAC ARREST", ///
+>   "SUICIDE ATTEMPT", ///
+>   "K-9 DEMONSTRATION", ///
+>   "ASSIST CHATHAM COUNTY")
+(6 real changes made)
+
+. 
+. replace incident_non_crime = 1 if inlist(incidentdesc, ///
+>   "ASSIST ORANGE COUNTY", ///
+>   "DIRECTED PATROL", ///
+>   "ACCIDENTAL ALARM", ///
+>   "LOST WALLET", ///
+>   "DOMESTIC ASSIST", ///
+>   "K9 DEMO", ///
+>   "ASSIST BAIL BONDSMAN")
+(7 real changes made)
+
+. 
+. *------------------------------------------
+. * Final
+. *------------------------------------------
+. gen incident_cat  = .
+(1,695 missing values generated)
+
+. replace incident_cat = 1 if incident_party == 1
+(122 real changes made)
+
+. replace incident_cat = 2 if incident_alcohol == 1
+(45 real changes made)
+
+. replace incident_cat = 3 if incident_drug == 1
+(62 real changes made)
+
+. replace incident_cat = 4 if incident_domestic == 1
+(96 real changes made)
+
+. replace incident_cat = 5 if incident_information == 1
+(213 real changes made)
+
+. replace incident_cat = 6 if incident_theft == 1
+(441 real changes made)
+
+. replace incident_cat = 7 if incident_property == 1
+(164 real changes made)
+
+. replace incident_cat = 8 if incident_moving == 1
+(45 real changes made)
+
+. replace incident_cat = 9 if incident_victimless == 1
+(79 real changes made)
+
+. replace incident_cat = 10 if incident_assult == 1
+(90 real changes made)
+
+. replace incident_cat = 11 if incident_personal == 1
+(97 real changes made)
+
+. replace incident_cat = 12 if incident_financial == 1
+(35 real changes made)
+
+. replace incident_cat = 13 if incident_sexual == 1
+(24 real changes made)
+
+. replace incident_cat = 14 if incident_non_crime == 1
+(182 real changes made)
+
+. label define incident_cat 1 "Party" 2 "Alcohol" 3 "Drug" 4 "Domestic" ///
+>   5 "Information" 6 "Theft" 7 "Property Crime" 8 "Moving Crime" ///
+>   9 "Victimeless Crime" 10 "Assult" ///
+>   11 "Personal Crime" 12 "Financial" 13 "Sexual" ///
+>   14 "Non-Crime"
+
+. label values incident_cat incident_cat
+
+. 
+. *************** END *****************
+. 
+end of do-file
+
+. compress
+  variable incident_party was float now byte
+  variable incident_alcohol was float now byte
+  variable incident_drug was float now byte
+  variable incident_domestic was float now byte
+  variable incident_information was float now byte
+  variable incident_theft was float now byte
+  variable incident_property was float now byte
+  variable incident_moving was float now byte
+  variable incident_victimless was float now byte
+  variable incident_assult was float now byte
+  variable incident_personal was float now byte
+  variable incident_financial was float now byte
+  variable incident_sexual was float now byte
+  variable incident_non_crime was float now byte
+  variable incident_cat was float now byte
+  (76,275 bytes saved)
+
+. save 00_data/incidents, replace
+file 00_data/incidents.dta saved
+
+. export excel using "00_data/incidents.xlsx", firstrow(var) replace
+file 00_data/incidents.xlsx saved
+
+. 
+. *-------------------------------------------------------------
+. * Merge
+. *-------------------------------------------------------------
+. use 00_data/incidents, clear
+
+. rename inci_id case_id
+
+. merge m:m case_id using 00_data/arrests, keep(match) nogen
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             0
+    matched                               230  
+    -----------------------------------------
+
+. save 00_data/matched, replace
+file 00_data/matched.dta saved
+
+. export excel using "00_data/matched.xlsx", firstrow(var) replace
+file 00_data/matched.xlsx saved
+
+. 
+. use 00_data/incidents, clear
+
+. rename inci_id case_id
+
+. merge m:m case_id using 00_data/arrests, keep(master) nogen
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,483
+        from master                     1,483  
+        from using                          0  
+
+    matched                                 0  
+    -----------------------------------------
+
+. save 00_data/not_matched, replace
+file 00_data/not_matched.dta saved
+
+. gen matched = 0
+
+. keep unique_id matched
+
+. save 00_data/not_matched_ids, replace
+file 00_data/not_matched_ids.dta saved
+
+. export excel using "00_data/not_matched_ids.xlsx", firstrow(var) replace
+file 00_data/not_matched_ids.xlsx saved
+
+. 
+. use 00_data/incidents, clear
+
+. merge 1:1 unique_id using 00_data/not_matched_ids, nogen
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           212
+        from master                       212  
+        from using                          0  
+
+    matched                             1,483  
+    -----------------------------------------
+
+. replace matched = 1 if missing(matched)
+(212 real changes made)
+
+. save 00_data/incidents, replace
+file 00_data/incidents.dta saved
+
+. export excel using "00_data/incidents2.xlsx", firstrow(var) replace
+file 00_data/incidents2.xlsx saved
+
+. 
+. use 00_data/arrests, clear
+
+. append 00_data/matched, gen(attached)
+using required
+r(100);
+
+end of do-file
+
+r(100);
+
+. do 00_get_data
+
+. /*
+> Create Chapel Hill Police
+> Author: Alvin G. Thomas, MSPH
+> 
+> Written for Stata14 SE
+> Created on 2019-10-20
+> Last Edited 2019-10-31
+> 
+> Copyright (c) 2019 Alvin G. Thomas (https://github.com/alvinthomas).
+> It is made available under a CC-BY-SA 4.0 International license.
+> */
+. 
+. ***** PREAMBLE *****
+. clear all
+
+. macro drop _all
+
+. set more off
+
+. 
+. * Start Log File
+. global DO_NAME = "00_get_data"
+
+. agt_log, name($DO_NAME )

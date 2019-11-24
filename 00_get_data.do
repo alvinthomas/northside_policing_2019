@@ -135,6 +135,12 @@ use 00_data/incidents, clear
 rename inci_id case_id
 merge m:m case_id using 00_data/arrests, keep(match) nogen
 save 00_data/matched, replace
+export excel using "00_data/matched.xlsx", firstrow(var) replace
+
+use 00_data/arrests, clear
+append using 00_data/matched, gen(attached)
+save 00_data/arrests_append, replace
+export excel using "00_data/arrests_append.xlsx", firstrow(var) replace
 
 use 00_data/incidents, clear
 rename inci_id case_id
@@ -143,11 +149,13 @@ save 00_data/not_matched, replace
 gen matched = 0
 keep unique_id matched
 save 00_data/not_matched_ids, replace
+export excel using "00_data/not_matched_ids.xlsx", firstrow(var) replace
 
 use 00_data/incidents, clear
 merge 1:1 unique_id using 00_data/not_matched_ids, nogen
 replace matched = 1 if missing(matched)
 save 00_data/incidents, replace
+export excel using "00_data/incidents2.xlsx", firstrow(var) replace
 
 preserve
 gen n = 1
