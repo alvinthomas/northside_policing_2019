@@ -34,3 +34,4 @@ arrest_append2 %>%
        title="Differences in Race Distribution by Origin of Arrest") +
   theme(legend.position="bottom",
         axis.text.x = element_text(angle = -90, hjust = 1))
+ggsave(filename = "02_figs/barplot.png")
