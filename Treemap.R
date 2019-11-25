@@ -1,9 +1,14 @@
-library("tidyverse")
-library("readxl")
-library("ggplot2")
-library("RColorBrewer")
+list.of.packages <- c("tidyverse", "stringr", "lubridate", "readxl",
+  "RColorBrewer", "treemapify")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
 
-setwd("~/Dropbox/UNC/Classes/HBEH720/Northside")
+library("tidyverse")
+library("stringr")
+library("lubridate")
+library("readxl")
+library("RColorBrewer")
+library("treemapify")
 
 arrests <- read_excel("00_data/arrests.xlsx")
 
