@@ -15,13 +15,18 @@ library("readxl")
 library("RColorBrewer")
 library("treemapify")
 
-make_graph1 <- function(dateRange, options) {
+make_graph1 <- function(dateRange,
+                        options1a,
+                        options1b,
+                        options1c = c("M", "F")) {
   arrests <- read_excel("00_data/arrests.xlsx")
   arrests$yy <- as.Date(ymd_hms(arrests$date_arr))
 
   arrests2 <- arrests %>%
-    filter(arrest_cat %in% options) %>%
+    filter(arrest_cat %in% options1a) %>%
+    filter(race %in% options1b) %>%
     filter(yy >= dateRange[1] & yy <= dateRange[2]) %>%
+    filter(sex %in% options1c) %>%
     group_by(arrest_cat, chrgdesc) %>%
     summarise(count = n())
 
@@ -67,7 +72,7 @@ make_graph2 <- function(dateRange, options) {
     scale_fill_manual(name = "Incident Category", values = getPalette(colourCount))
 }
 
-make_graph3 <- function(dateRange, options, options2) {
+make_graph3 <- function(dateRange, options, options2, options3) {
   arrest_append <- read_excel("00_data/arrests_append.xlsx")
   arrest_append$yy <- as.Date(ymd_hms(arrest_append$date_arr))
 
@@ -96,6 +101,7 @@ make_graph3 <- function(dateRange, options, options2) {
     filter(arrest_cat %in% options) %>%
     filter(race %in% options2) %>%
     filter(yy >= dateRange[1] & yy <= dateRange[2]) %>%
+    filter(sex %in% options3) %>%
     group_by(attached, arrest_cat, race) %>%
     summarise(count=n()) %>%
     mutate(perc=count/sum(count)) %>%
@@ -111,13 +117,15 @@ make_graph3 <- function(dateRange, options, options2) {
           axis.text.x = element_text(angle = -90, hjust = 1))
 }
 
-get_dat1 <- function(dateRange, options) {
+get_dat1 <- function(dateRange, options1a, options1b, options1c) {
   arrests <- read_excel("00_data/arrests.xlsx")
   arrests$yy <- as.Date(ymd_hms(arrests$date_arr))
 
   arrests2 <- arrests %>%
-    filter(arrest_cat %in% options) %>%
+    filter(arrest_cat %in% options1a) %>%
+    filter(race %in% options1b) %>%
     filter(yy >= dateRange[1] & yy <= dateRange[2]) %>%
+    filter(sex %in% options1c) %>%
     group_by(arrest_cat, chrgdesc) %>%
     summarise(count = n())
   return(arrests2)
@@ -135,7 +143,7 @@ get_dat2 <- function(dateRange, options) {
   return(incidents2)
 }
 
-get_dat3 <- function(dateRange, options, options2) {
+get_dat3 <- function(dateRange, options, options2, options3) {
   arrest_append <- read_excel("00_data/arrests_append.xlsx")
   arrest_append$yy <- as.Date(ymd_hms(arrest_append$date_arr))
 
@@ -164,6 +172,7 @@ get_dat3 <- function(dateRange, options, options2) {
     filter(arrest_cat %in% options) %>%
     filter(race %in% options2) %>%
     filter(yy >= dateRange[1] & yy <= dateRange[2]) %>%
+    filter(sex %in% options3) %>%
     group_by(attached, arrest_cat, race) %>%
     summarise(count=n()) %>%
     mutate(perc=count/sum(count))
