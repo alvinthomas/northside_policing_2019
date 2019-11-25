@@ -95,9 +95,9 @@ ui <- dashboardPage(
             p("Allowable range: 2014-07-01 to 2019-06-30"),
             p("Recommended range: 2014-07-01 to 2019-06-30")
           ),
-          box(title="Arrests Categories", status="primary",
+          box(title="Arrests", status="primary",
             solidHeader=TRUE, width=3,
-            checkboxGroupInput("categories1", "Arrests",
+            checkboxGroupInput("categories1a", "Arrest Categories",
                               choices = c("Alcohol" = "Alcohol",
                                  "Assult" = "Assult",
                                  "Drug" = "Drug",
@@ -113,6 +113,21 @@ ui <- dashboardPage(
                                "Moving Crime", "Personal",
                                "Property Crime", "Sexual Crime",
                                "Theft", "Victimless Crime")
+            ),
+            checkboxGroupInput("categories1b", "Race/Ethnicity",
+                              choices = c("Asian" = "A",
+                                "Black" = "B",
+                                "Hispanic" = "H",
+                                "Native American" = "I",
+                                "White" = "W"),
+                              selected = c("A", "B",
+                                "H", "I", "W")
+            ),
+            checkboxGroupInput("categories1c", "Sex",
+                              choices = c(
+                                "Male" = "M",
+                                "Female" = "F"),
+                              selected = c("M", "F")
             )
           ),
           box(title="Incidents Date Range", status="primary",
@@ -128,9 +143,9 @@ ui <- dashboardPage(
             p("Allowable range: 2014-07-01 to 2019-06-30"),
             p("Recommended range: 2014-07-01 to 2019-06-30")
           ),
-          box(title="Incidents Categories", status="primary",
+          box(title="Incidents", status="primary",
             solidHeader=TRUE, width=3,
-            checkboxGroupInput("categories2", "Incidents",
+            checkboxGroupInput("categories2", "Incidents Categories",
                                choices = c("Alcohol" = "Alcohol",
                                   "Assult" = "Assult",
                                   "Domestic Crime" = "Domestic",
@@ -192,7 +207,7 @@ ui <- dashboardPage(
         ),
         fluidRow(
           box(title="Arrests Date Range", status="primary",
-            solidHeader=TRUE, width=4,
+            solidHeader=TRUE, width=3,
             dateRangeInput(inputId = "dateRange3",
                            label = "Date range: yyyy-mm-dd",
                            start = "2014-07-01", end = "2019-06-30",
@@ -205,7 +220,7 @@ ui <- dashboardPage(
             p("Recommended range: 2014-07-01 to 2019-06-30")
           ),
           box(title="Arrests Categories", status="primary",
-            solidHeader=TRUE, width=4,
+            solidHeader=TRUE, width=3,
             checkboxGroupInput("categories3", "Arrests",
                               choices = c("Alcohol" = "Alcohol",
                                  "Assult" = "Assult",
@@ -225,7 +240,7 @@ ui <- dashboardPage(
             )
           ),
           box(title="Race/Ethnicity Categories", status="primary",
-            solidHeader=TRUE, width=4,
+            solidHeader=TRUE, width=3,
             checkboxGroupInput("categories4", "Race",
                               choices = c("Asian" = "Asian",
                                 "Black" = "Black",
@@ -234,6 +249,15 @@ ui <- dashboardPage(
                                 "White" = "White"),
                               selected = c("Asian", "Black",
                                 "Hispanic", "Native American", "White")
+            )
+          ),
+          box(title="Sex Categories", status="primary",
+            solidHeader=TRUE, width=3,
+            checkboxGroupInput("categories5", "Sex",
+                              choices = c(
+                                "Male" = "M",
+                                "Female" = "F"),
+                              selected = c("M", "F")
             )
           )
         )
@@ -339,7 +363,8 @@ ui <- dashboardPage(
 server <- function(input, output) {
 
   output$popPlot1 <- renderPlot({
-    make_graph1(dateRange = input$dateRange1, options = input$categories1)
+    make_graph1(dateRange = input$dateRange1, options1a = input$categories1a,
+      options1b = input$categories1b, options1c = input$categories1c)
   })
 
   output$popPlot2 <- renderPlot({
@@ -348,11 +373,12 @@ server <- function(input, output) {
 
   output$popPlot3 <- renderPlot({
     make_graph3(dateRange = input$dateRange3, options = input$categories3,
-      options2 = input$categories4)
+      options2 = input$categories4, options3 = input$categories5)
   })
 
   output$popTable1 <- DT::renderDataTable({
-    df <- get_dat1(dateRange = input$dateRange1, options = input$categories1)
+    df <- get_dat1(dateRange = input$dateRange1, options1a = input$categories1a,
+      options1b = input$categories1b, options1c = input$categories1c)
     DT::datatable(df,
       options = list(lengthMenu = c(8, 20, 50), pageLength = 8))
   })
@@ -365,7 +391,7 @@ server <- function(input, output) {
 
   output$popTable3 <- DT::renderDataTable({
     df <- get_dat3(dateRange = input$dateRange3, options = input$categories3,
-      options2 = input$categories4)
+      options2 = input$categories4, options3 = input$categories5)
     DT::datatable(df,
       options = list(lengthMenu = c(8, 20, 50), pageLength = 8))
   })
